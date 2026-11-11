@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Recall</title>
+<link rel="stylesheet" href="/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="dot"></span>
+      <strong>Recall</strong>
+      <span class="tag">web search agent with memory</span>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="actions">
+      <button id="memory-toggle" class="ghost" title="Show what the agent remembered">Memory</button>
+      <button id="new-chat" class="ghost">New chat</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="thread" class="thread">
+      <div class="empty" id="empty">
+        <h1>Ask me something that changes.</h1>
+        <p>I search the web, cite what I find, and record the facts I give you. Come back tomorrow and ask whether any of it still holds.</p>
+        <div class="suggestions" id="suggestions">
+          <button data-q="Compare Neon, Supabase and Railway for hosting a small Postgres database. What does each cost?">Compare Postgres hosting and pricing</button>
+          <button data-q="What did I ask you about earlier? Is any of it out of date?">What did I ask you before?</button>
+          <button data-q="Shortlist 5 CRM tools for a 20-person sales team, with current pricing.">Shortlist 5 CRMs with pricing</button>
+        </div>
+      </div>
+    </section>
+
+    <aside id="memory-panel" class="memory-panel" aria-hidden="true">
+      <div class="panel-head">
+        <strong>Memory</strong>
+        <button id="memory-close" class="ghost small">Close</button>
+      </div>
+      <div class="panel-body" id="memory-body"></div>
+    </aside>
+  </main>
+
+  <form id="composer" class="composer">
+    <textarea id="input" rows="1" placeholder="Ask anything. Enter to send, Shift+Enter for a new line." autofocus></textarea>
+    <button id="send" type="submit" aria-label="Send">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </form>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
