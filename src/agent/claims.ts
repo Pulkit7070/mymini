@@ -91,6 +91,22 @@ export async function enrichTurn(turn: Turn): Promise<void> {
       if (!src?.url) continue;
       if (c.value.length > 120) continue;
 
+      // One row per fact. Restating a fact updates the row the user was
+      // originally told, rather than filing a rival copy of it; the JSONL log
+      // still holds every revision, so nothing is lost.
+      const key = claimKey(c.subject, c.attribute);
+      const existing = store.allClaims().find((e) => claimKey(e.subject, e.attribute) === key);
+      if (existing) {
+        store.patchClaim(existing.id, {
+          value: c.value,
+          ts: turn.ts,
+          turnId: turn.id,
+          sourceUrl: src.url,
+          sourceTitle: src.title,
+        });
+        continue;
+      }
+
       store.addClaim({
         turnId: turn.id,
         sessionId: turn.sessionId,
@@ -246,11 +262,45 @@ function judge(claim: Claim, evidence: string): Promise<Verdict | null> {
 function dedupeClaims(claims: Claim[]): Claim[] {
   const newest = new Map<string, Claim>();
   for (const c of claims) {
-    const key = `${c.subject.toLowerCase().trim()}|${c.attribute.toLowerCase().trim()}`;
+    const key = claimKey(c.subject, c.attribute);
     const prev = newest.get(key);
     if (!prev || prev.ts < c.ts) newest.set(key, c);
   }
   return [...newest.values()];
+}
+
+const ATTR_NOISE = new Set(['per', 'the', 'a', 'an', 'of', 'in', 'for', 'is', 'at', 'current', 'new', 'approximate', 'typical', 'listed']);
+
+/** Words the extractor swaps freely for one another when restating a fact. */
+const ATTR_SYNONYM: Record<string, string> = {
+  cost: 'price', pricing: 'price', fee: 'price', charge: 'price', rate: 'price',
+  monthly: 'month', yearly: 'year', annual: 'year', annually: 'year',
+  seat: 'seat', user: 'seat', member: 'seat',
+};
+
+/**
+ * Identity of a fact, independent of how the sentence that carried it was
+ * phrased.
+ *
+ * The extractor is a language model, so the same fact comes back worded
+ * differently every time it is restated: "price per month" on Monday,
+ * "monthly price" after a re-check. Keyed on the raw attribute, those are two
+ * rows, and the agent then holds two baselines for one fact — it told the user
+ * $19 and separately recorded $15, and the next "has it changed?" can diff
+ * against whichever it happens to retrieve. So attributes are reduced to a
+ * sorted bag of crudely stemmed content words before comparison.
+ */
+export function claimKey(subject: string, attribute: string): string {
+  const norm = attribute
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .map((w) => ATTR_SYNONYM[w] ?? w.replace(/s$/, ''))
+    .map((w) => ATTR_SYNONYM[w] ?? w)
+    .filter((w) => w.length > 1 && !ATTR_NOISE.has(w))
+    .sort()
+    .join(' ');
+  return `${subject.toLowerCase().trim()}|${norm}`;
 }
 
 function markResult(claim: Claim, r: Omit<VerificationResult, 'claim'>): VerificationResult {

@@ -159,6 +159,26 @@ assert(
     .some((t) => t.sessionId === 'dead-end'),
 );
 
+/* -------------------------------- claims -------------------------------- */
+
+console.log('\nclaim identity');
+
+const { claimKey } = await import('../src/agent/claims.js');
+const same = (a: string, b: string) => claimKey('Neon Launch plan', a) === claimKey('Neon Launch plan', b);
+
+// The extractor rewords the same fact every time it is restated. Keyed on raw
+// text these become rival rows, and the agent ends up holding two baselines
+// for one fact.
+assert('"price per month" == "monthly price"', same('price per month', 'monthly price'));
+assert('"typical monthly cost" == "price per month"', same('typical monthly cost', 'price per month'));
+assert('"new price per month" == "price per month"', same('new price per month', 'price per month'));
+assert('a different fact stays different', !same('price per month', 'included compute credit'));
+assert('per-seat is not per-org', !same('price per seat per month', 'price per month'));
+assert(
+  'different subjects never collide',
+  claimKey('Neon Launch plan', 'price per month') !== claimKey('Supabase Pro plan', 'price per month'),
+);
+
 /* ------------------------------ extraction ------------------------------ */
 
 console.log('\nhtml extraction');
