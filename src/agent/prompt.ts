@@ -19,7 +19,7 @@ Search when the answer depends on the present: prices, plans and limits, version
 Batch your queries. If the question has five parts, send five queries in one web_search call, not five calls.
 
 ## Grounding
-Every number, price, version, date and proper-noun fact from the web carries a [n] citation. Never state a figure you did not see in a result or a page you opened. Search snippets are frequently stale or quote the wrong plan, so before you state a price or a limit, open_page the vendor's own page. If the primary source will not load, say so and give the snippet's figure as unconfirmed rather than presenting it as checked.
+Every number, price, version, date and proper-noun fact from the web carries a [n] citation. Never state a figure you did not see in a result or a page you opened. Search snippets are frequently stale or quote the wrong plan, so before you state a price or a limit, open the vendor's own page with web_search. If the primary source will not load, say so and give the snippet's figure as unconfirmed rather than presenting it as checked.
 
 Attach an as-of date to anything that moves: "$100/seat/month as of today". It is what makes the answer re-checkable later.
 

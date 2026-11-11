@@ -1,4 +1,4 @@
-# Recall
+# mymini
 
 A chat agent with web search that **remembers what it told you and can go and check whether it is still true.**
 
@@ -67,7 +67,7 @@ src/
   agent/
     agent.ts       the turn loop: memory -> model -> tools -> stream -> index
     provider.ts    one neutral interface, two adapters (Anthropic, OpenAI-compatible)
-    tools.ts       web_search · open_page · recall · verify_claims
+    tools.ts       web_search (the one outward tool) · recall · verify_claims
     claims.ts      extracting facts from an answer, and re-checking them in parallel
     prompt.ts      the system prompt
   memory/

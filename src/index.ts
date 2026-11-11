@@ -84,7 +84,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(config.port, () => {
   const problems = assertConfig();
-  console.log(`\n  Recall agent -> http://localhost:${config.port}\n`);
+  console.log(`\n  mymini -> http://localhost:${config.port}\n`);
   console.log(`  model     ${config.llm?.name ?? 'NOT CONFIGURED'} / ${config.model}  (fast: ${config.fastModel})`);
   console.log(`  search    ${config.searchProvider ?? 'NOT CONFIGURED'}`);
   console.log(`  timezone  ${config.timezone}`);

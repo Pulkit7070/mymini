@@ -33,7 +33,7 @@ const sessionId = process.env.SESSION_ID ?? randomUUID();
 /** `npm run cli -- "question"` answers once and exits. Handy for scripted checks. */
 const oneShot = process.argv.slice(2).join(' ').trim();
 
-console.log(C.bold('\nRecall') + C.dim(` — ${config.llm?.name}/${config.model} · search: ${config.searchProvider} · ${store.stats().turns} turns in memory`));
+console.log(C.bold('\nmymini') + C.dim(` — ${config.llm?.name}/${config.model} · search: ${config.searchProvider} · ${store.stats().turns} turns in memory`));
 if (!oneShot) console.log(C.dim('Ctrl+C to exit.\n'));
 
 const rl = oneShot ? null : readline.createInterface({ input: stdin, output: stdout });

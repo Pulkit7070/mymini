@@ -19,10 +19,13 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     name: 'web_search',
     description:
-      'Search the live web. Pass SEVERAL queries in one call whenever the question has several parts — they run in ' +
-      'parallel and cost the same wall-clock time as one. Returns ranked results with [n] citation numbers you must ' +
-      'reuse in your answer. Snippets are often stale or truncated: for any price, limit, version or date, follow up ' +
-      'with open_page on the vendor\'s own URL before you state a number.',
+      'The live web: search it, and read pages from it. This is your only access to the outside world.\n' +
+      '- `queries`: one to six searches. Always batch them — they run in parallel and cost the same wall-clock ' +
+      'time as one, so a five-way comparison is one call, not five.\n' +
+      '- `open`: URLs to read in full. Search snippets are frequently stale, truncated, or quoting a different ' +
+      'plan than the one asked about, so for any price, limit, version or date, open the vendor\'s own page and ' +
+      'read the number there before you state it.\n' +
+      'You may pass both at once. Everything returned carries an [n] citation number you must reuse in your answer.',
     parameters: {
       type: 'object',
       properties: {
@@ -31,26 +34,17 @@ export const TOOL_DEFS: ToolDef[] = [
           items: { type: 'string' },
           description: 'One to six independent search queries. Keep each one specific and keyword-shaped.',
         },
+        open: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Absolute URLs to fetch and read, at most 4. Use on primary sources before quoting a figure.',
+        },
         freshness: {
           type: 'string',
           enum: ['day', 'week', 'month', 'year', 'any'],
-          description: 'Restrict to recently published pages. Use for news and "what changed" questions; use "any" for pricing and docs, which are rarely dated.',
+          description: 'Restrict searches to recently published pages. Use for news and "what changed" questions; use "any" for pricing and docs, which are rarely dated.',
         },
       },
-      required: ['queries'],
-    },
-  },
-  {
-    name: 'open_page',
-    description:
-      'Fetch the readable text of up to 4 URLs in parallel. Use it on the primary source (the vendor\'s own pricing ' +
-      'or changelog page) before stating any number. Returns the text plus a [n] citation number.',
-    parameters: {
-      type: 'object',
-      properties: {
-        urls: { type: 'array', items: { type: 'string' }, description: 'Absolute URLs, at most 4.' },
-      },
-      required: ['urls'],
     },
   },
   {
@@ -98,9 +92,7 @@ export interface ToolContext {
 export async function runTool(name: string, input: any, ctx: ToolContext): Promise<string> {
   switch (name) {
     case 'web_search':
-      return webSearch(input, ctx);
-    case 'open_page':
-      return openPage(input, ctx);
+      return web(input, ctx);
     case 'recall':
       return recall(input, ctx);
     case 'verify_claims':
@@ -110,9 +102,27 @@ export async function runTool(name: string, input: any, ctx: ToolContext): Promi
   }
 }
 
-async function webSearch(input: { queries: string[]; freshness?: any }, ctx: ToolContext): Promise<string> {
+/**
+ * The agent's single outward-facing tool. Searching and reading are two halves
+ * of one act — a search result you cannot open is a rumour — so they are one
+ * tool, and the model can do both in a single round when it already knows which
+ * page it needs.
+ */
+async function web(
+  input: { queries?: string[]; open?: string[]; freshness?: any },
+  ctx: ToolContext,
+): Promise<string> {
+  const [searched, opened] = await Promise.all([
+    input.queries?.length ? runSearch(input, ctx) : Promise.resolve(''),
+    input.open?.length ? openPage({ urls: input.open }, ctx) : Promise.resolve(''),
+  ]);
+  const out = [searched, opened].filter(Boolean).join('\n\n=====\n\n');
+  return out || 'Nothing requested: pass `queries`, `open`, or both.';
+}
+
+async function runSearch(input: { queries?: string[]; freshness?: any }, ctx: ToolContext): Promise<string> {
   const queries = (input.queries ?? []).filter(Boolean).slice(0, 6);
-  if (!queries.length) return 'No queries supplied.';
+  if (!queries.length) return '';
   ctx.onEvent({ kind: 'search', queries });
 
   const { hits, errors } = await multiSearch(queries, { freshness: input.freshness ?? 'any', perQuery: 5 });
@@ -133,7 +143,7 @@ async function webSearch(input: { queries: string[]; freshness?: any }, ctx: Too
 
 async function openPage(input: { urls: string[] }, ctx: ToolContext): Promise<string> {
   const urls = (input.urls ?? []).filter(Boolean).slice(0, 4);
-  if (!urls.length) return 'No URLs supplied.';
+  if (!urls.length) return '';
   ctx.onEvent({ kind: 'read', urls });
 
   const pages = await pMap(urls, 4, (u) => fetchPage(u));
@@ -191,11 +201,14 @@ async function verify(input: { subjects?: string[]; claim_ids?: string[] }, ctx:
 
   if (!targets.length) {
     return 'No stored claims match. Nothing was previously recorded about those subjects, so there is no baseline to ' +
-      'diff against: use web_search and open_page to establish the facts now, and tell the user you had not recorded ' +
+      'diff against: use web_search to find and open the current pages and establish the facts now, and tell the user you had not recorded ' +
       'them before.';
   }
 
-  ctx.onEvent({ kind: 'verify', subjects: targets.map((c) => c.subject) });
+  // The ledger can hold several rows about one subject (a price and a limit,
+  // or two phrasings written by different re-checks). The verifier collapses
+  // them; the trace should show the user subjects, not rows.
+  ctx.onEvent({ kind: 'verify', subjects: [...new Set(targets.map((c) => c.subject))] });
   const results = await verifyClaims(targets);
 
   return results

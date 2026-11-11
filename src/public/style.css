@@ -127,6 +127,12 @@ main { flex: 1; display: flex; min-height: 0; position: relative; }
   transition: border-color .12s, color .12s;
 }
 .suggestions button:hover { color: var(--ink); border-color: var(--accent); }
+.hint { margin-top: 22px; font-size: 12.5px; color: var(--ink-faint); }
+.hint code {
+  font-family: var(--mono); font-size: 11.5px;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  padding: 1.5px 5px; border-radius: 5px;
+}
 
 /* ---------- messages ---------- */
 

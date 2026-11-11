@@ -95,7 +95,7 @@ export const config = {
   dataDir: path.resolve(process.cwd(), pick('DATA_DIR') ?? './data'),
 
   /** Generic UA. Never send the operator's identity to third-party sites. */
-  userAgent: 'RecallAgent/1.0 (+https://github.com/Pulkit7070/recall-agent)',
+  userAgent: 'MyMini/1.0 (+https://github.com/Pulkit7070/mymini)',
 } as const;
 
 /** Groq's free tier caps tokens per minute hard enough to change the design. */

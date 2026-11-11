@@ -39,10 +39,10 @@ function dedupeCalls(calls: { id: string; name: string; input: any }[]) {
 
 function describeCall(name: string, input: any): ToolEvent | null {
   switch (name) {
+    // Only the searches are announced up front; the page reads announce
+    // themselves from inside the tool, once it knows what it fetched.
     case 'web_search':
-      return { kind: 'search', queries: input?.queries ?? [] };
-    case 'open_page':
-      return { kind: 'read', urls: input?.urls ?? [] };
+      return input?.queries?.length ? { kind: 'search', queries: input.queries } : null;
     case 'recall':
       return { kind: 'recall', query: input?.query ?? [input?.from, input?.to].filter(Boolean).join(' to ') };
     default:
@@ -158,10 +158,10 @@ export async function* chat(opts: {
 
       if (calls.some((c) => c.name === 'verify_claims')) budget = Math.min(budget, round + 2);
 
-      // verify_claims only knows which subjects matched after it has run.
+      // Page reads and claim matches are only known once the tool has run.
       while (pending.length) {
         const e = pending.shift()!;
-        if (e.kind === 'verify') yield { type: 'tool', tool: e };
+        if (e.kind === 'read' || e.kind === 'verify') yield { type: 'tool', tool: e };
       }
 
       messages.push({ role: 'tool', results });
